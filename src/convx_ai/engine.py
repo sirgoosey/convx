@@ -6,6 +6,7 @@ from pathlib import Path
 
 from convx_ai.models import NormalizedSession
 from convx_ai.redact import redact_secrets
+from convx_ai.sanitize import load_sanitize_keywords, sanitize_lines
 from convx_ai.render import first_user_text, render_json, render_markdown
 from convx_ai.utils import (
     atomic_write_json,
@@ -75,7 +76,7 @@ def _session_contains(session: NormalizedSession, needle: str) -> bool:
     if not needle:
         return False
     for msg in session.messages:
-        if msg.text and needle in msg.text:
+        if msg.kind == "user" and msg.text and needle in msg.text:
             return True
     if session.child_sessions:
         for child in session.child_sessions:
@@ -115,10 +116,12 @@ def sync_sessions(
     with_context: bool = False,
     with_thinking: bool = False,
     skip_if_contains: str = "CONVX_NO_SYNC",
+    force_overwrite: bool = False,
 ) -> SyncResult:
     history_root = output_repo_path / history_subpath
     index_path = output_repo_path / ".convx" / "index.json"
     index = _load_index(index_path)
+    sanitize_keywords = load_sanitize_keywords(output_repo_path)
     records: dict = index["sessions"]
 
     result = SyncResult(dry_run=dry_run)
@@ -137,7 +140,7 @@ def sync_sessions(
             continue
 
         prior = records.get(session_key, {})
-        if prior.get("fingerprint") == fingerprint:
+        if not force_overwrite and prior.get("fingerprint") == fingerprint:
             markdown_rel = prior.get("markdown_path")
             json_rel = prior.get("json_path")
             if markdown_rel and json_rel:
@@ -169,18 +172,27 @@ def sync_sessions(
                 if not dry_run:
                     atomic_write_text(
                         markdown_path,
-                        redact_secrets(
-                            render_markdown(session, with_context=with_context, with_thinking=with_thinking),
-                            redact=redact,
+                        sanitize_lines(
+                            redact_secrets(
+                                render_markdown(session, with_context=with_context, with_thinking=with_thinking),
+                                redact=redact,
+                            ),
+                            sanitize_keywords,
                         ),
                     )
-                    atomic_write_text(json_path, redact_secrets(render_json(session), redact=redact))
+                    atomic_write_text(
+                        json_path,
+                        sanitize_lines(redact_secrets(render_json(session), redact=redact), sanitize_keywords),
+                    )
                     for child in session.child_sessions:
                         atomic_write_text(
                             session_dir / f"agent-{child.session_id}.md",
-                            redact_secrets(
-                                render_markdown(child, with_context=with_context, with_thinking=with_thinking),
-                                redact=redact,
+                            sanitize_lines(
+                                redact_secrets(
+                                    render_markdown(child, with_context=with_context, with_thinking=with_thinking),
+                                    redact=redact,
+                                ),
+                                sanitize_keywords,
                             ),
                         )
             else:
@@ -189,12 +201,18 @@ def sync_sessions(
                 if not dry_run:
                     atomic_write_text(
                         markdown_path,
-                        redact_secrets(
-                            render_markdown(session, with_context=with_context, with_thinking=with_thinking),
-                            redact=redact,
+                        sanitize_lines(
+                            redact_secrets(
+                                render_markdown(session, with_context=with_context, with_thinking=with_thinking),
+                                redact=redact,
+                            ),
+                            sanitize_keywords,
                         ),
                     )
-                    atomic_write_text(json_path, redact_secrets(render_json(session), redact=redact))
+                    atomic_write_text(
+                        json_path,
+                        sanitize_lines(redact_secrets(render_json(session), redact=redact), sanitize_keywords),
+                    )
 
             now = now_iso()
             records[session_key] = {
@@ -205,6 +223,7 @@ def sync_sessions(
                 "markdown_path": str(markdown_path.relative_to(output_repo_path)),
                 "json_path": str(json_path.relative_to(output_repo_path)),
                 "basename": basename,
+                "cwd": session.cwd or "",
                 "updated_at": now,
                 "started_at": session.started_at,
             }

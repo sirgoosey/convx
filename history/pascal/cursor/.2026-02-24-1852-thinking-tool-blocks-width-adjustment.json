@@ -1,0 +1,44 @@
+{
+  "child_sessions": null,
+  "cwd": "/Users/pascal/Code/business/convx",
+  "messages": [
+    {
+      "kind": "user",
+      "role": "user",
+      "text": "thinking/tool blocks should be same width as the agent blocks (left side of chat)",
+      "timestamp": null
+    },
+    {
+      "kind": "assistant",
+      "role": "assistant",
+      "text": "Reading the full `SessionPreview` component to confirm layout and apply the same left-side width to thinking/tool blocks.",
+      "timestamp": null
+    },
+    {
+      "kind": "assistant",
+      "role": "assistant",
+      "text": "Wrapping ThinkingBlock, ToolBlock, and SystemBlock in the same left-aligned container with `max-w-[85%]` so they match the agent (assistant) bubble width.",
+      "timestamp": null
+    },
+    {
+      "kind": "assistant",
+      "role": "assistant",
+      "text": "Matching agent bubbles: they use only `max-w-[85%]` (no `w-full`), so they're content-sized. Removing `w-full` from the thinking/tool wrappers so those blocks behave the same.",
+      "timestamp": null
+    },
+    {
+      "kind": "assistant",
+      "role": "assistant",
+      "text": "Summary of changes:\n\n- **ThinkingBlock**, **ToolBlock**, and **SystemBlock** are now wrapped in the same layout as agent messages: a `flex justify-start` container with an inner `max-w-[85%]` div.\n- So thinking, tool, and system blocks are left-aligned and share the same max width (85%) as assistant bubbles, and only take the width they need up to that cap.",
+      "timestamp": null
+    }
+  ],
+  "session_id": "c1139a91-24f0-4c79-bf8d-ced0e0103790",
+  "session_key": "cursor:c1139a91-24f0-4c79-bf8d-ced0e0103790",
+  "source_path": "/Users/pascal/Library/Application Support/Cursor/User/globalStorage/state.vscdb",
+  "source_system": "cursor",
+  "started_at": "2026-02-24T18:52:25.853000Z",
+  "summary": "Thinking/tool blocks width adjustment",
+  "system_name": "Pascals-MBP.local",
+  "user": "pascal"
+}

@@ -13,3 +13,6 @@ build/
 .env
 tmp/
 symlinks/
+node_modules/
+
+.claude/worktrees/

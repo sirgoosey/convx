@@ -167,7 +167,7 @@
     {
       "kind": "assistant",
       "role": "assistant",
-      "text": "Those 512 Cursor sessions are from other projects (stelliosbeach, orchard, matrix-ui, etc.), not from the convx repo. `sync` only exports sessions whose `cwd` is under the current repo, so they’re all filtered out.\n\nTo export Cursor sessions, use **backup** instead of sync:\n\n```bash\nconvx backup --output-path . --source-system=cursor\n```\n\nThat exports all Cursor sessions into the current repo. Or point `--output-path` at a dedicated backup repo.\n\nTo export only Cursor sessions for a specific project, run `convx sync` from that project’s directory:\n\n```bash\ncd /Users/pascal/Code/everycure/matrix\nconvx sync --source-system=cursor\n```",
+[SANITIZED]
       "timestamp": null
     },
     {

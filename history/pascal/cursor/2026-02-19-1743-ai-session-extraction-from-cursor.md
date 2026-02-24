@@ -432,7 +432,7 @@ That exports all Cursor sessions into the current repo. Or point `--output-path`
 To export only Cursor sessions for a specific project, run `convx sync` from that project’s directory:
 
 ```bash
-cd /Users/pascal/Code/everycure/matrix
+[SANITIZED]
 convx sync --source-system=cursor
 ```
 

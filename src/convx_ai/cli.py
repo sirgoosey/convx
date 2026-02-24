@@ -122,6 +122,9 @@ def sync_command(
         "--skip-if-contains",
         help="Do not sync conversations that contain this string (pass empty to disable).",
     ),
+    overwrite: bool = typer.Option(
+        False, "--overwrite", help="Re-export all sessions, ignoring cached fingerprints."
+    ),
 ) -> None:
     """Sync conversations for the current Git repo into it."""
     project_repo = _require_git_repo(Path.cwd())
@@ -148,6 +151,7 @@ def sync_command(
                 with_context=with_context,
                 with_thinking=with_thinking,
                 skip_if_contains=skip_if_contains,
+                force_overwrite=overwrite,
             )
             total.discovered += result.discovered
             total.exported += result.exported
@@ -214,6 +218,9 @@ def backup_command(
         "--skip-if-contains",
         help="Do not sync conversations that contain this string (pass empty to disable).",
     ),
+    overwrite: bool = typer.Option(
+        False, "--overwrite", help="Re-export all sessions, ignoring cached fingerprints."
+    ),
 ) -> None:
     """Full backup of all conversations into a directory (created if missing)."""
     output_repo = _resolve_output_path(output_path)
@@ -238,6 +245,7 @@ def backup_command(
                 with_context=with_context,
                 with_thinking=with_thinking,
                 skip_if_contains=skip_if_contains,
+                force_overwrite=overwrite,
             )
             total.discovered += result.discovered
             total.exported += result.exported
@@ -259,8 +267,60 @@ def explore_command(
         "--output-path",
         help="Directory containing exported conversations.",
     ),
+    api_only: bool = typer.Option(
+        False,
+        "--api-only",
+        help="Start API server only (no browser, no static files). For use with Vite dev server.",
+    ),
+    port: int = typer.Option(
+        0,
+        "--port",
+        help="Port to listen on (0 = pick a free port; --api-only defaults to 7331).",
+    ),
 ) -> None:
-    """Browse and search exported conversations in a TUI."""
+    """Browse exported conversations in a web dashboard."""
+    import webbrowser
+
+    from convx_ai.search import ensure_index
+    from convx_ai.server import ConvxServer
+
+    repo = output_path.expanduser().resolve()
+    if not repo.exists():
+        raise typer.BadParameter(f"Path does not exist: {repo}")
+    index_path = repo / ".convx" / "index.json"
+    if not index_path.exists():
+        typer.echo("No index found. Run `convx sync` or `convx backup` first.")
+        raise typer.Exit(1)
+    ensure_index(repo)
+    # In --api-only mode the Vite proxy expects port 7331 by default.
+    effective_port = port or (7331 if api_only else 0)
+    server = ConvxServer(repo, port=effective_port)
+    server.serve_forever_in_thread()
+    url = f"http://localhost:{server.port}"
+    typer.echo(f"convx dashboard running at {url}")
+    if api_only:
+        typer.echo(f"  Vite proxy: set CONVX_API_PORT={server.port} if not 7331")
+    if not api_only:
+        webbrowser.open(url)
+    typer.echo("Press Ctrl+C to stop.")
+    try:
+        import time
+
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        server.shutdown()
+
+
+@app.command("tui")
+def tui_command(
+    output_path: Path = typer.Option(
+        Path.cwd(),
+        "--output-path",
+        help="Directory containing exported conversations.",
+    ),
+) -> None:
+    """Browse and search exported conversations in a terminal UI (legacy)."""
     from convx_ai.search import ensure_index
     from convx_ai.tui import ExploreApp
 
@@ -328,11 +388,11 @@ app.add_typer(hooks_app, name="hooks")
 @app.command("stats")
 def stats_command(
     output_path: Path = typer.Option(
-        ..., "--output-path", help="Git repo containing exported conversations."
+        Path.cwd(), "--output-path", help="Directory containing exported conversations."
     ),
 ) -> None:
     """Show index totals and last update time."""
-    output_repo = _require_git_repo(output_path)
+    output_repo = _require_git_repo(output_path.expanduser().resolve())
     index_path = output_repo / ".convx" / "index.json"
     if not index_path.exists():
         typer.echo("index_found=false sessions=0")
@@ -343,6 +403,68 @@ def stats_command(
     timestamps = sorted(record.get("updated_at", "") for record in sessions.values())
     last_updated = timestamps[-1] if timestamps else ""
     typer.echo(f"index_found=true sessions={len(sessions)} last_updated={last_updated}")
+
+
+@app.command("word-stats")
+def word_stats_command(
+    output_path: Path = typer.Option(
+        Path.cwd(), "--output-path", help="Directory containing exported conversations."
+    ),
+    history_subpath: str = typer.Option(
+        "history", "--history-subpath", help="Subpath where history is written (must match sync/backup)."
+    ),
+) -> None:
+    """Show word count statistics per day per project."""
+    from convx_ai.stats import compute_word_series
+
+    repo = output_path.expanduser().resolve()
+    history_path = repo / history_subpath
+
+    if not history_path.exists():
+        typer.echo(f"Error: history directory not found at {history_path}")
+        raise typer.Exit(1)
+
+    result = compute_word_series(history_path)
+
+    if not result["dates"]:
+        typer.echo("No session data found.")
+        return
+
+    dates = result["dates"]
+    series = result["series"]
+
+    # Compute per-project totals and last active date
+    project_totals = {
+        project: sum(series[project])
+        for project in result["projects"]
+    }
+    project_last_active = {
+        project: max(
+            (dates[i] for i, v in enumerate(series[project]) if v > 0),
+            default="-",
+        )
+        for project in result["projects"]
+    }
+
+    # Sort projects by total words descending
+    ranked = sorted(result["projects"], key=lambda p: project_totals[p], reverse=True)
+
+    console = Console()
+    table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
+    table.add_column("Project", style="bold")
+    table.add_column("Total words", justify="right")
+    table.add_column("Active days", justify="right")
+    table.add_column("Last active", style="dim")
+
+    for project in ranked:
+        total = project_totals[project]
+        if total == 0:
+            continue
+        active_days = sum(1 for v in series[project] if v > 0)
+        last = project_last_active[project]
+        table.add_row(project, f"{total:,}", str(active_days), last)
+
+    console.print(table)
 
 
 def main() -> None:

@@ -28,3 +28,47 @@ uv run pytest tests/test_integration_sync.py::test_name  # run a single test
 **Adding a new source system adapter:** implement `discover_files(input_path)`, `peek_session(source_path, source_system)`, and `parse_session(...)` → `NormalizedSession`, then register in `adapters/__init__.py`.
 
 **`NormalizedMessage.kind`** distinguishes rendering roles: `"user"` | `"assistant"` | `"system"` | `"tool"`. In the Codex adapter, `role="user"` messages are classified as `kind="system"` when the text wasn't typed by the human (injected context vs. actual user input).
+
+## Line-Level Content Sanitization
+
+**Feature:** Replace entire lines containing sensitive keywords with `[SANITIZED]` to exclude work/client content from exported history.
+
+**Configuration:** Create `.convx/sanitize.toml` in the output repo:
+
+```toml
+# Lines containing any of these terms will be replaced with [SANITIZED]
+keywords = [
+  "everycure",
+  "Every Cure",
+  "client-specific-data",
+]
+```
+
+**How it works:**
+- Loaded automatically on every `sync` or `backup` run
+- Applied **after** secret redaction (API keys, tokens, passwords)
+- Matching is **case-insensitive** (e.g., `"everycure"` matches `EveryCure`, `EVERYCURE`)
+- Each entire line is replaced; no partial leaks
+- File is **auto-gitignored** — each user can define their own keywords
+
+**Integration:** `sanitize.py` exports:
+- `load_sanitize_keywords(repo_path: Path) -> list[str]` — reads `.convx/sanitize.toml`
+- `sanitize_lines(text: str, keywords: list[str]) -> str` — replaces matching lines
+
+Called in `engine.py` after every `redact_secrets()` call (markdown, JSON, child sessions).
+
+## Force Overwrite (Idempotency Override)
+
+**Feature:** Re-export all sessions, ignoring cached fingerprints, to reprocess previously exported data with new redaction/sanitization rules.
+
+**Usage:**
+```bash
+convx sync --overwrite           # Sync with force-overwrite
+convx backup --output-path ~/my-history --overwrite
+```
+
+**How it works:**
+- Bypasses fingerprint check in `engine.py:140`
+- All sessions are re-exported and re-sanitized
+- Useful after adding new keywords to `.convx/sanitize.toml` to clean old exports
+- Index is still updated normally; subsequent runs without `--overwrite` skip unchanged sessions

@@ -222,7 +222,7 @@ There it is — it's inside each project directory, not at the top level. Let me
 
 ## User
 
-check symlinks/claude/projects/-Users-pascal-Code-everycure-orchard/sessions-index.json
+[SANITIZED]
 
 ## Agent
 
@@ -231,7 +231,7 @@ This is perfect. The `sessions-index.json` gives us everything we need without e
 **Fields available:**
 - `sessionId` — UUID matching the `.jsonl` filename
 - `fullPath` — direct path to the session file
-- `projectPath` — the actual decoded filesystem path (e.g. `/Users/pascal/Code/everycure/orchard`)
+[SANITIZED]
 - `summary` — Claude's own human-readable title for the session
 - `firstPrompt` — first user message (truncated, useful for filename slug)
 - `created` / `modified` — ISO timestamps
@@ -304,7 +304,7 @@ The prefix matching strategy works perfectly. Here's the full picture and the up
 
 **Subfolder discovery**
 
-Claude creates one project directory per distinct path the user opened a session in. So `/Users/pascal/Code/everycure/core/apps/home` gets its own project dir `-Users-pascal-Code-everycure-core-apps-home`. Importantly, the encoding is just `path.replace('/', '-')`, so to find all sessions belonging to a repo we don't need to decode — we just match project dirs where the name equals the encoded repo path **or starts with `<encoded-repo>-`**. This correctly captures all subfolders.
+[SANITIZED]
 
 Two caveats:
 - Subfolder project dirs don't always have a `sessions-index.json` (only populated ones do). Need to fall back to scanning `.jsonl` files directly.

@@ -16,6 +16,7 @@ def _schema():
         .add_text_field("date", stored=True)
         .add_text_field("source", stored=True)
         .add_text_field("path", stored=True)
+        .add_text_field("project", stored=True)
         .build()
     )
 
@@ -39,11 +40,13 @@ def ensure_index(repo: Path) -> None:
     schema = _schema()
     index = Index(schema=schema, path=str(search_dir))
     writer = index.writer(heap_size=15_000_000, num_threads=1)
+    repo_name = repo.resolve().name
     for record in sessions.values():
         md_path = repo / record["markdown_path"]
         if not md_path.exists():
             continue
         content = md_path.read_text(encoding="utf-8")
+        project = _resolve_project(record, repo_name)
         doc = Document()
         doc.add_text("session_key", record["session_key"])
         doc.add_text("title", record.get("basename", ""))
@@ -51,6 +54,7 @@ def ensure_index(repo: Path) -> None:
         doc.add_text("date", record.get("started_at") or record.get("updated_at", ""))
         doc.add_text("source", record.get("source_system", ""))
         doc.add_text("path", record["markdown_path"])
+        doc.add_text("project", project)
         writer.add_document(doc)
     writer.commit()
     index.reload()
@@ -71,16 +75,34 @@ def _folder_from_path(path: str) -> str:
     return "/".join(parts[3:-1])
 
 
+def _project_from_cwd(cwd: str) -> str:
+    """Extract project name from cwd (last path segment)."""
+    if not cwd or not cwd.strip():
+        return ""
+    return str(Path(cwd).name)
+
+
+def _resolve_project(record: dict, repo_name: str) -> str:
+    """Derive the project name from cwd, falling back to repo folder name."""
+    cwd = record.get("cwd", "")
+    if cwd:
+        return _project_from_cwd(cwd)
+    return repo_name
+
+
 def list_sessions(repo: Path) -> list[dict]:
     index_path = repo / ".convx" / "index.json"
     if not index_path.exists():
         return []
     data = json.loads(index_path.read_text(encoding="utf-8"))
     sessions = data.get("sessions", {})
+    repo_name = repo.resolve().name
     out = []
     for r in sessions.values():
         path = r["markdown_path"]
         date = r.get("started_at") or r.get("updated_at", "")
+        folder = _folder_from_path(path)
+        project = _resolve_project(r, repo_name)
         out.append(
             {
                 "session_key": r["session_key"],
@@ -89,7 +111,8 @@ def list_sessions(repo: Path) -> list[dict]:
                 "source": r.get("source_system", ""),
                 "path": path,
                 "user": _user_from_path(path),
-                "folder": _folder_from_path(path),
+                "folder": folder,
+                "project": project,
             }
         )
     out.sort(key=lambda x: x["path"])
@@ -131,6 +154,7 @@ def query_index(repo: Path, q: str, limit: int = 50) -> list[dict]:
                 "path": path,
                 "user": _user_from_path(path),
                 "folder": _folder_from_path(path),
+                "project": _v("project"),
             }
         )
     return out

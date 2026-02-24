@@ -1,0 +1,32 @@
+{
+  "child_sessions": null,
+  "cwd": "/Users/pascal/Code/business/convx",
+  "messages": [
+    {
+      "kind": "user",
+      "role": "user",
+      "text": "wy 2 icons for cursor/claude/codex differentiation? 1 is enough no? remove left hand icon pls.",
+      "timestamp": null
+    },
+    {
+      "kind": "assistant",
+      "role": "assistant",
+      "text": "Removing the left-hand source icon from the session list and keeping only the right-hand badge.",
+      "timestamp": null
+    },
+    {
+      "kind": "assistant",
+      "role": "assistant",
+      "text": "Summary of changes:\n\n- **Removed** the left-hand icon (`ItemMedia` with Sparkles/Terminal/MousePointerClick) from each session row.\n- **Kept** the right-hand pill badge (Claude / Cursor / Codex) as the only source indicator.\n- Dropped the `SOURCE_ICON` map and the unused `ItemMedia`, `Sparkles`, `Terminal`, and `MousePointerClick` imports.\n\nSource is now indicated only by the colored badge on the right.",
+      "timestamp": null
+    }
+  ],
+  "session_id": "e3ae875e-9aea-4b95-b8bf-9e2178a42797",
+  "session_key": "cursor:e3ae875e-9aea-4b95-b8bf-9e2178a42797",
+  "source_path": "/Users/pascal/Library/Application Support/Cursor/User/globalStorage/state.vscdb",
+  "source_system": "cursor",
+  "started_at": "2026-02-24T19:01:32.951000Z",
+  "summary": "Chat session icon differentiation",
+  "system_name": "Pascals-MBP.local",
+  "user": "pascal"
+}
