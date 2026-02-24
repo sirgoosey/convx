@@ -38,16 +38,16 @@ uv run pytest tests/test_integration_sync.py::test_name  # run a single test
 ```toml
 # Lines containing any of these terms will be replaced with [SANITIZED]
 keywords = [
-  "everycure",
-  "Every Cure",
-  "client-specific-data",
+  "work",
+  "sensitive topic ",
+  "some rant",
 ]
 ```
 
 **How it works:**
 - Loaded automatically on every `sync` or `backup` run
 - Applied **after** secret redaction (API keys, tokens, passwords)
-- Matching is **case-insensitive** (e.g., `"everycure"` matches `EveryCure`, `EVERYCURE`)
+- Matching is **case-insensitive** (e.g., `"PONY"` matches `pony`, `Pony`)
 - Each entire line is replaced; no partial leaks
 - File is **auto-gitignored** — each user can define their own keywords
 
