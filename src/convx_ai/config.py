@@ -19,6 +19,7 @@ class SyncDefaults(BaseModel):
     redact: bool = True
     with_context: bool = False
     with_thinking: bool = False
+    recursive: bool = True
     skip_if_contains: str = "CONVX_NO_SYNC"
     overwrite: bool = False
 

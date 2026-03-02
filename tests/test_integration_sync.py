@@ -83,6 +83,7 @@ def test_sync_filters_to_current_git_repository(tmp_path: Path) -> None:
         "--input-path", str(FIXTURES),
         "--user", "alice",
         "--system-name", "macbook-pro",
+        "--recursive",
         "--history-subpath", ".ai/history",
     ], cwd=project_repo)
     assert run.returncode == 0, run.stderr
@@ -94,7 +95,7 @@ def test_sync_filters_to_current_git_repository(tmp_path: Path) -> None:
     assert len(markdown_files) == 1
 
 
-def test_sync_from_subdirectory_writes_to_git_root(tmp_path: Path) -> None:
+def test_sync_from_subdirectory_respects_default_recursive_scope(tmp_path: Path) -> None:
     project_repo = tmp_path / "backend"
     _init_git_repo(project_repo)
     nested = project_repo / "api" / "handlers"
@@ -109,12 +110,11 @@ def test_sync_from_subdirectory_writes_to_git_root(tmp_path: Path) -> None:
         "--history-subpath", ".ai/history",
     ], cwd=nested)
     assert run.returncode == 0, run.stderr
-    assert "filtered=1" in run.stdout
-    assert "exported=1" in run.stdout
+    assert "filtered=2" in run.stdout
+    assert "exported=0" in run.stdout
 
     history_root = project_repo / ".ai" / "history" / "alice" / "codex"
-    markdown_files = sorted(history_root.rglob("*.md"))
-    assert len(markdown_files) == 1
+    assert not history_root.exists() or len(list(history_root.rglob("*.md"))) == 0
 
 
 def test_sync_skips_conversations_containing_marker(tmp_path: Path) -> None:
@@ -142,7 +142,7 @@ def test_sync_uses_history_subpath_from_config(tmp_path: Path) -> None:
     _init_git_repo(project_repo)
     (project_repo / ".convx").mkdir(parents=True, exist_ok=True)
     (project_repo / ".convx" / "config.toml").write_text(
-        "[sync]\nhistory_subpath = \".ai/history\"\n",
+        "[sync]\nhistory_subpath = \".ai/history\"\nrecursive = true\n",
         encoding="utf-8",
     )
 
@@ -178,6 +178,10 @@ def test_sync_creates_config_file_if_missing(tmp_path: Path) -> None:
     assert config_path.exists()
     content = config_path.read_text(encoding="utf-8")
     assert CONFIG_REF in content
+    convx_gitignore = project_repo / ".convx" / ".gitignore"
+    assert convx_gitignore.exists()
+    gi = convx_gitignore.read_text(encoding="utf-8")
+    assert "!config.toml" in gi
 
 
 def test_secrets_redacted_in_output(tmp_path: Path) -> None:

@@ -7,23 +7,6 @@ from convx_ai.models import NormalizedMessage, NormalizedSession
 from convx_ai.utils import now_iso
 
 
-def _encode_path(path: Path | str) -> str:
-    s = str(path).replace("/", "-")
-    return s if s.startswith("-") else f"-{s}"
-
-
-def _project_dir_matches_repo(project_dir_name: str, repo_path: Path) -> bool:
-    encoded = _encode_path(repo_path.resolve())
-    # Claude also replaces dots with hyphens in project dir names (e.g. reconnct.us → reconnct-us)
-    encoded_nodots = encoded.replace(".", "-")
-    return (
-        project_dir_name == encoded
-        or project_dir_name.startswith(f"{encoded}-")
-        or project_dir_name == encoded_nodots
-        or project_dir_name.startswith(f"{encoded_nodots}-")
-    )
-
-
 def _extract_text_from_content(content) -> tuple[str, str]:
     """Returns (text, content_type). content_type can be 'text', 'tool_result', 'tool_use', 'thinking'."""
     if isinstance(content, str):
@@ -160,9 +143,9 @@ class ClaudeAdapter:
         for project_dir in sorted(input_path.iterdir()):
             if not project_dir.is_dir():
                 continue
-            name = project_dir.name
-            if repo_filter_path and not _project_dir_matches_repo(name, repo_filter_path):
-                continue
+            # Do not pre-filter by encoded project directory name.
+            # Claude project dir naming can drift from local repo path encoding
+            # (e.g. symlinked paths), so we defer filtering to engine-level cwd checks.
             index_path = project_dir / "sessions-index.json"
             if index_path.exists():
                 try:
@@ -199,6 +182,21 @@ class ClaudeAdapter:
         project_dir = source_path.parent
         index_path = project_dir / "sessions-index.json"
         session_id = source_path.stem
+        jsonl_cwd = ""
+        jsonl_ts = ""
+        if source_path.exists():
+            for line in source_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if obj.get("type") in ("user", "assistant"):
+                    jsonl_cwd = str(obj.get("cwd", "") or "")
+                    jsonl_ts = str(obj.get("timestamp", "") or "")
+                    break
         if index_path.exists():
             try:
                 data = json.loads(index_path.read_text(encoding="utf-8"))
@@ -211,31 +209,21 @@ class ClaudeAdapter:
                         return {
                             "session_id": session_id,
                             "session_key": f"{source_system}:{session_id}",
-                            "cwd": project_path,
-                            "started_at": entry.get("created") or entry.get("modified", ""),
+                            # Prefer cwd from JSONL when available; sessions-index projectPath can be stale.
+                            "cwd": jsonl_cwd or project_path,
+                            "started_at": jsonl_ts or entry.get("created") or entry.get("modified", ""),
                             "summary": entry.get("summary"),
                             "fingerprint": str(entry.get("fileMtime", "")),
                         }
-        if source_path.exists():
-            for line in source_path.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if obj.get("type") in ("user", "assistant"):
-                    cwd = obj.get("cwd", "")
-                    ts = obj.get("timestamp", "")
-                    return {
-                        "session_id": session_id,
-                        "session_key": f"{source_system}:{session_id}",
-                        "cwd": cwd,
-                        "started_at": ts,
-                        "summary": None,
-                        "fingerprint": None,
-                    }
+        if jsonl_cwd or jsonl_ts:
+            return {
+                "session_id": session_id,
+                "session_key": f"{source_system}:{session_id}",
+                "cwd": jsonl_cwd,
+                "started_at": jsonl_ts,
+                "summary": None,
+                "fingerprint": None,
+            }
         raise ValueError(f"Could not peek session: {source_path}")
 
     def parse_session(

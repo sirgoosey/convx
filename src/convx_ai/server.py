@@ -139,10 +139,21 @@ class ConvxHandler(BaseHTTPRequestHandler):
 
     def _handle_stats(self) -> None:
         try:
-            from convx_ai.stats import compute_stats_series
+            from convx_ai.config import ConvxConfig
+            from convx_ai.stats import compute_stats_series, pick_history_path
 
-            history_path = self.repo / "history"
-            if not history_path.exists():
+            config = ConvxConfig.for_repo(self.repo)
+            history_path = pick_history_path(
+                self.repo,
+                [
+                    config.word_stats.history_subpath,
+                    config.sync.history_subpath,
+                    config.backup.history_subpath,
+                    ".ai/history",
+                    "history",
+                ],
+            )
+            if history_path is None:
                 self.send_json({
                     "word": {"dates": [], "projects": [], "series": {}},
                     "tool": {"dates": [], "projects": [], "series": {}},

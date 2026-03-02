@@ -42,15 +42,15 @@ uv run convx --help
 
 ## sync — project-scoped command
 
-Run from inside any Git repo. Syncs only the conversations that took place in that repo (or its
-subfolders) and writes them into the repo itself:
+Run from inside any Git repo. Syncs conversations for the current folder by default and writes
+them into the repo itself:
 
 ```bash
 cd /path/to/your/project
 uv run convx sync
 ```
 
-By default syncs Codex, Claude, and Cursor. Use `--source-system codex`, `--source-system claude`, or `--source-system cursor` to sync a single source. No `--output-path` needed — the current directory is used as both the filter and the destination. Sessions are written flat under `.ai/history/<user>/<source-system>/` with no machine name or path nesting.
+By default syncs Codex, Claude, and Cursor. Use `--source-system codex`, `--source-system claude`, or `--source-system cursor` to sync a single source. No `--output-path` needed — the Git root is used as destination and the current working directory is used as scope filter. Recursive folder matching is enabled by default; use `--no-recursive` to restrict to the current folder only. Sessions are written flat under `.ai/history/<user>/<source-system>/` with no machine name or path nesting.
 
 ## backup — full backup command
 
@@ -74,6 +74,7 @@ uv run convx backup \
 - `--system-name`: system namespace for history path (default: hostname).
 - `--dry-run`: discover and plan without writing files.
 - `--history-subpath`: folder inside output repo where history is stored (default: `sync` = `.ai/history`, `backup` = `history`).
+- `--recursive` / `--no-recursive` (`sync` only): include or exclude subdirectories of the current folder (default: `--recursive`).
 - `--output-path` (backup only): target Git repository (must already contain `.git`).
 
 ## Configuration defaults

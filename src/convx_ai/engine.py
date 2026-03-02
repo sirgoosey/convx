@@ -85,12 +85,15 @@ def _session_contains(session: NormalizedSession, needle: str) -> bool:
     return False
 
 
-def _is_under_repo(cwd: str, repo_path: Path) -> bool:
+def _is_under_repo(cwd: str, repo_path: Path, *, recursive: bool = True) -> bool:
     if not cwd:
         return False
     resolved_repo = repo_path.resolve()
+    resolved_cwd = Path(cwd).resolve()
+    if not recursive:
+        return resolved_cwd == resolved_repo
     try:
-        Path(cwd).resolve().relative_to(resolved_repo)
+        resolved_cwd.relative_to(resolved_repo)
         return True
     except ValueError:
         cwd_parts = [part for part in Path(cwd).parts if part not in {"", "/"}]
@@ -111,6 +114,7 @@ def sync_sessions(
     system_name: str,
     dry_run: bool = False,
     repo_filter_path: Path | None = None,
+    repo_filter_recursive: bool = True,
     flat_output: bool = False,
     redact: bool = True,
     with_context: bool = False,
@@ -135,7 +139,7 @@ def sync_sessions(
         fingerprint = peek.get("fingerprint") or sha256_file(source_path)
         session_key = peek["session_key"]
         cwd = str(peek.get("cwd", ""))
-        if repo_filter_path and not _is_under_repo(cwd, repo_filter_path):
+        if repo_filter_path and not _is_under_repo(cwd, repo_filter_path, recursive=repo_filter_recursive):
             result.filtered += 1
             continue
 
@@ -155,7 +159,7 @@ def sync_sessions(
         except (ValueError, OSError, KeyError, json.JSONDecodeError):
             result.filtered += 1
             continue
-        if repo_filter_path and not _is_under_repo(session.cwd, repo_filter_path):
+        if repo_filter_path and not _is_under_repo(session.cwd, repo_filter_path, recursive=repo_filter_recursive):
             result.filtered += 1
             continue
         if _session_contains(session, skip_if_contains):
@@ -246,6 +250,6 @@ def sync_sessions(
 
 def _ensure_convx_gitignore(repo_path: Path) -> None:
     gitignore = repo_path / ".convx" / ".gitignore"
-    content = "*\n!.gitignore\n"
+    content = "*\n!.gitignore\n!config.toml\n"
     if not gitignore.exists() or gitignore.read_text() != content:
         atomic_write_text(gitignore, content)

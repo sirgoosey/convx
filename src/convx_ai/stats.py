@@ -138,6 +138,35 @@ def _compute_aggregates(
             print(f"Warning: Failed to process {json_file}: {e}", file=sys.stderr)
 
 
+def _has_session_json(history_path: Path) -> bool:
+    return any(history_path.glob("**/.*.json"))
+
+
+def pick_history_path(repo: Path, subpaths: list[str]) -> Path | None:
+    """Pick the best history path from candidates.
+
+    Preference order:
+    1. First existing candidate that contains at least one session JSON file.
+    2. Otherwise first existing candidate.
+    3. None if no candidates exist.
+    """
+    existing: list[Path] = []
+    seen: set[Path] = set()
+    for subpath in subpaths:
+        if not subpath:
+            continue
+        path = (repo / subpath).resolve()
+        if path in seen:
+            continue
+        seen.add(path)
+        if not path.exists():
+            continue
+        if _has_session_json(path):
+            return path
+        existing.append(path)
+    return existing[0] if existing else None
+
+
 def compute_word_series(history_path: Path) -> dict:
     """Aggregate word counts per day per project. Returns dates, projects, series."""
     word_agg: dict[tuple[str, str], int] = {}

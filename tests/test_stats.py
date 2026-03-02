@@ -14,6 +14,7 @@ from convx_ai.stats import (
     _parse_date,
     _process_session,
     compute_word_series,
+    pick_history_path,
 )
 
 
@@ -328,3 +329,33 @@ def test_compute_word_series_nested_directories(tmp_path: Path) -> None:
     assert result["dates"] == ["2026-02-19"]
     assert result["projects"] == ["project"]
     assert result["series"]["project"] == [2]
+
+
+def test_pick_history_path_prefers_candidate_with_session_json(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    history = repo / "history"
+    ai_history = repo / ".ai" / "history"
+    history.mkdir(parents=True)
+    ai_history.mkdir(parents=True)
+    (ai_history / "alice" / "codex").mkdir(parents=True)
+    (ai_history / "alice" / "codex" / ".session.json").write_text(
+        json.dumps(
+            {
+                "started_at": "2026-02-19T10:00:00Z",
+                "cwd": "/Users/test/project",
+                "messages": [{"kind": "user", "text": "hi"}],
+            }
+        )
+    )
+
+    chosen = pick_history_path(repo, ["history", ".ai/history"])
+    assert chosen == ai_history.resolve()
+
+
+def test_pick_history_path_falls_back_to_first_existing(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    history = repo / "history"
+    history.mkdir(parents=True)
+
+    chosen = pick_history_path(repo, ["history", ".ai/history"])
+    assert chosen == history.resolve()

@@ -182,15 +182,38 @@ def test_claude_sync_filters_to_repo_and_subfolders(tmp_path: Path) -> None:
         "--source-system", "claude",
         "--input-path", str(projects_dir),
         "--user", "alice",
+        "--recursive",
         "--history-subpath", "history",
     ], cwd=project_repo)
     assert run.returncode == 0, run.stderr
     assert "exported=3" in run.stdout
-    assert "discovered=3" in run.stdout
+    assert "discovered=4" in run.stdout
 
     history_root = project_repo / "history" / "alice" / "claude"
     session_dirs = list(history_root.rglob("index.md"))
     assert len(session_dirs) == 3
+
+
+def test_claude_sync_from_subdirectory_is_recursive_by_default(tmp_path: Path) -> None:
+    project_repo = tmp_path / "Users" / "alice" / "Code" / "backend"
+    _init_git_repo(project_repo)
+    nested = project_repo / "api"
+    nested.mkdir(parents=True, exist_ok=True)
+    projects_dir = _setup_claude_fixtures(tmp_path, project_repo)
+
+    run = _run_cli([
+        "sync",
+        "--source-system", "claude",
+        "--input-path", str(projects_dir),
+        "--user", "alice",
+    ], cwd=nested)
+    assert run.returncode == 0, run.stderr
+    assert "exported=1" in run.stdout
+    assert "discovered=4" in run.stdout
+
+    history_root = project_repo / ".ai" / "history" / "alice" / "claude"
+    session_dirs = list(history_root.rglob("index.md"))
+    assert len(session_dirs) == 1
 
 
 def test_claude_sync_always_uses_folder_structure(tmp_path: Path) -> None:
@@ -241,3 +264,74 @@ def test_claude_sync_dotted_repo_name(tmp_path: Path) -> None:
     ], cwd=project_repo)
     assert run.returncode == 0, run.stderr
     assert "exported=1" in run.stdout, run.stdout
+
+
+def test_claude_sync_filters_by_cwd_not_project_dir_name(tmp_path: Path) -> None:
+    project_repo = tmp_path / "Users" / "alice" / "Code" / "backend"
+    _init_git_repo(project_repo)
+
+    # Intentionally use a project directory name that does not match repo encoding.
+    projects_dir = tmp_path / "claude_projects"
+    projects_dir.mkdir(parents=True, exist_ok=True)
+    weird = projects_dir / "unrelated-project-dir-name"
+    weird.mkdir(parents=True, exist_ok=True)
+    session = weird / "ffffffff-1111-2222-3333-444444440006.jsonl"
+    session.write_text(
+        '{"type":"user","cwd":"' + str(project_repo / "api") + '","sessionId":"ffffffff-1111-2222-3333-444444440006","message":{"role":"user","content":"Refactor API auth"},"timestamp":"2026-01-25T10:00:00.000Z"}\n'
+        '{"type":"assistant","cwd":"' + str(project_repo / "api") + '","sessionId":"ffffffff-1111-2222-3333-444444440006","message":{"role":"assistant","content":[{"type":"text","text":"Done."}]},"timestamp":"2026-01-25T10:00:10.000Z"}\n'
+    )
+
+    run = _run_cli([
+        "sync",
+        "--source-system", "claude",
+        "--input-path", str(projects_dir),
+        "--user", "alice",
+        "--recursive",
+    ], cwd=project_repo)
+    assert run.returncode == 0, run.stderr
+    assert "discovered=1" in run.stdout
+    assert "exported=1" in run.stdout
+
+    history_root = project_repo / ".ai" / "history" / "alice" / "claude"
+    session_dirs = list(history_root.rglob("index.md"))
+    assert len(session_dirs) == 1
+
+
+def test_claude_sync_uses_jsonl_cwd_when_index_project_path_is_stale(tmp_path: Path) -> None:
+    project_repo = tmp_path / "Users" / "alice" / "Code" / "backend"
+    _init_git_repo(project_repo)
+
+    projects_dir = tmp_path / "claude_projects"
+    projects_dir.mkdir(parents=True, exist_ok=True)
+    proj = projects_dir / "any-name"
+    proj.mkdir(parents=True, exist_ok=True)
+
+    (proj / "sessions-index.json").write_text(json.dumps({
+        "version": 1,
+        "entries": [
+            {
+                "sessionId": "99999999-1111-2222-3333-444444440009",
+                "fileMtime": 1700000009000,
+                "summary": "Stale projectPath entry",
+                "created": "2026-01-25T11:00:00.000Z",
+                "modified": "2026-01-25T11:00:10.000Z",
+                "projectPath": "/Users/alice/Code/completely-different-repo",
+                "isSidechain": False,
+            }
+        ],
+    }, indent=2))
+    (proj / "99999999-1111-2222-3333-444444440009.jsonl").write_text(
+        '{"type":"user","cwd":"' + str(project_repo / "prototypes" / "clinical-compass") + '","sessionId":"99999999-1111-2222-3333-444444440009","message":{"role":"user","content":"Work on clinical compass"},"timestamp":"2026-01-25T11:00:00.000Z"}\n'
+        '{"type":"assistant","cwd":"' + str(project_repo / "prototypes" / "clinical-compass") + '","sessionId":"99999999-1111-2222-3333-444444440009","message":{"role":"assistant","content":[{"type":"text","text":"Done."}]},"timestamp":"2026-01-25T11:00:10.000Z"}\n'
+    )
+
+    run = _run_cli([
+        "sync",
+        "--source-system", "claude",
+        "--input-path", str(projects_dir),
+        "--user", "alice",
+        "--recursive",
+    ], cwd=project_repo)
+    assert run.returncode == 0, run.stderr
+    assert "discovered=1" in run.stdout
+    assert "exported=1" in run.stdout

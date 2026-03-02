@@ -144,6 +144,9 @@ def sync_command(
     with_thinking: bool | None = typer.Option(
         None, "--with-thinking/--no-with-thinking", help="Include AI reasoning/thinking blocks as HTML comments."
     ),
+    recursive: bool | None = typer.Option(
+        None, "--recursive/--no-recursive", help="Include sessions from subdirectories of the current folder."
+    ),
     skip_if_contains: str | None = typer.Option(
         None,
         "--skip-if-contains",
@@ -154,7 +157,8 @@ def sync_command(
     ),
 ) -> None:
     """Sync conversations for the current Git repo into it."""
-    project_repo = _require_git_root(Path.cwd())
+    scope_path = Path.cwd().expanduser().resolve()
+    project_repo = _require_git_root(scope_path)
     create_config_if_missing(project_repo)
     config = ConvxConfig.for_repo(project_repo)
     sync_defaults = config.sync
@@ -167,6 +171,7 @@ def sync_command(
     redact = _resolve_bool(redact, sync_defaults.redact)
     with_context = _resolve_bool(with_context, sync_defaults.with_context)
     with_thinking = _resolve_bool(with_thinking, sync_defaults.with_thinking)
+    recursive = _resolve_bool(recursive, sync_defaults.recursive)
     skip_if_contains = sync_defaults.skip_if_contains if skip_if_contains is None else skip_if_contains
     overwrite = _resolve_bool(overwrite, sync_defaults.overwrite)
 
@@ -187,7 +192,8 @@ def sync_command(
                 user=sanitize_segment(user),
                 system_name=sanitize_segment(system_name),
                 dry_run=dry_run,
-                repo_filter_path=project_repo,
+                repo_filter_path=scope_path,
+                repo_filter_recursive=recursive,
                 flat_output=True,
                 redact=redact,
                 with_context=with_context,
@@ -473,12 +479,25 @@ def word_stats_command(
     ),
 ) -> None:
     """Show word count statistics per day per project."""
-    from convx_ai.stats import compute_word_series
+    from convx_ai.stats import compute_word_series, pick_history_path
 
     repo = output_path.expanduser().resolve()
     config = ConvxConfig.for_repo(repo)
-    history_subpath = history_subpath or config.word_stats.history_subpath
-    history_path = repo / history_subpath
+    if history_subpath is not None:
+        history_path = repo / history_subpath
+    else:
+        history_path = pick_history_path(
+            repo,
+            [
+                config.word_stats.history_subpath,
+                config.sync.history_subpath,
+                config.backup.history_subpath,
+                ".ai/history",
+                "history",
+            ],
+        )
+        if history_path is None:
+            history_path = repo / config.word_stats.history_subpath
 
     if not history_path.exists():
         typer.echo(f"Error: history directory not found at {history_path}")
