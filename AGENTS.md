@@ -33,15 +33,12 @@ uv run pytest tests/test_integration_sync.py::test_name  # run a single test
 
 **Feature:** Replace entire lines containing sensitive keywords with `[SANITIZED]` to exclude work/client content from exported history.
 
-**Configuration:** Create `.convx/sanitize.toml` in the output repo:
+**Configuration:** Create `.convx/config.toml` in the output repo:
 
 ```toml
+[sanitize]
 # Lines containing any of these terms will be replaced with [SANITIZED]
-keywords = [
-  "work",
-  "sensitive topic ",
-  "some rant",
-]
+keywords = ["work", "sensitive topic ", "some rant"]
 ```
 
 **How it works:**
@@ -49,10 +46,10 @@ keywords = [
 - Applied **after** secret redaction (API keys, tokens, passwords)
 - Matching is **case-insensitive** (e.g., `"PONY"` matches `pony`, `Pony`)
 - Each entire line is replaced; no partial leaks
-- File is **auto-gitignored** — each user can define their own keywords
+- File can be committed to share team defaults, or ignored for per-user setup
 
 **Integration:** `sanitize.py` exports:
-- `load_sanitize_keywords(repo_path: Path) -> list[str]` — reads `.convx/sanitize.toml`
+- `load_sanitize_keywords(repo_path: Path) -> list[str]` — reads `.convx/config.toml` (`[sanitize].keywords`)
 - `sanitize_lines(text: str, keywords: list[str]) -> str` — replaces matching lines
 
 Called in `engine.py` after every `redact_secrets()` call (markdown, JSON, child sessions).
@@ -70,5 +67,5 @@ convx backup --output-path ~/my-history --overwrite
 **How it works:**
 - Bypasses fingerprint check in `engine.py:140`
 - All sessions are re-exported and re-sanitized
-- Useful after adding new keywords to `.convx/sanitize.toml` to clean old exports
+- Useful after adding new keywords to `.convx/config.toml` to clean old exports
 - Index is still updated normally; subsequent runs without `--overwrite` skip unchanged sessions

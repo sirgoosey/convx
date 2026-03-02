@@ -19,6 +19,8 @@ classifiers = [
 
 dependencies = [
   "hyperscan>=0.2.0",
+  "pydantic>=2.7.0",
+  "pydantic-settings>=2.3.0",
   "rapidfuzz>=3.0",
   "tantivy>=0.22",
   "textual>=8.0",

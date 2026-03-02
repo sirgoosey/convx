@@ -76,6 +76,24 @@ uv run convx backup \
 - `--history-subpath`: folder inside output repo where history is stored (default `history`).
 - `--output-path` (backup only): target Git repository (must already contain `.git`).
 
+## Configuration defaults
+
+Set repo-level defaults in `.convx/config.toml`. CLI flags override config values.
+
+```toml
+[sync]
+history_subpath = ".ai/history"
+skip_if_contains = "CONVX_NO_SYNC"
+redact = true
+
+[backup]
+history_subpath = "history"
+redact = true
+
+[sanitize]
+keywords = ["work", "client-x"]
+```
+
 ## Example output
 
 `convx sync` (inside a project repo):

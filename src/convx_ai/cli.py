@@ -12,6 +12,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from convx_ai.adapters import default_input_path, get_adapter
+from convx_ai.config import ConvxConfig
 from convx_ai.engine import SyncResult, sync_sessions
 from convx_ai.utils import sanitize_segment
 

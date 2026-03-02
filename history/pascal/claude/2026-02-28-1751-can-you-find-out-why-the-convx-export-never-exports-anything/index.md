@@ -55,3 +55,67 @@ Now let me add a test for this case:
 _`2026-02-28T17:53:21.243Z`_
 
 Now I have enough context. Let me add a test for the dot-in-dirname case:
+
+## Agent
+
+_`2026-02-28T17:54:24.722Z`_
+
+The test uses `tmp_path` which on macOS resolves to `/private/var/...`, so the hardcoded directory name doesn't match. I need to compute the dot-replaced encoded path dynamically:
+
+## Agent
+
+_`2026-02-28T17:54:38.273Z`_
+
+Test passes. Let me also run the full claude integration test suite to make sure nothing regressed:
+
+## Agent
+
+_`2026-02-28T17:54:45.235Z`_
+
+All 5 pass. Here's the root cause and fix:
+
+**Root cause:** In `adapters/claude.py`, `_project_dir_matches_repo` encoded the repo path by replacing `/` → `-`, giving `-Users-pascal-Code-business-reconnct.us`. But Claude's CLI also replaces `.` → `-` when naming project directories, so the actual directory on disk was `-Users-pascal-Code-business-reconnct-us`. The names didn't match, so `discover_files` skipped it entirely (discovered=0).
+
+**Fix:** `_project_dir_matches_repo` now also checks `encoded.replace(".", "-")` against the directory name, covering both the dot-preserving and dot-collapsing cases.
+
+## User
+
+_`2026-02-28T17:54:51.307Z`_
+
+great commit that
+
+## Agent
+
+_`2026-02-28T18:02:24.146Z`_
+
+The pre-commit hook (`convx sync`) fails because `convx` isn't in the hook's PATH — it needs `uv run convx`. Would you like me to fix the hook to use `uv run convx sync`, or just bypass it with `--no-verify` for this commit?
+
+## User
+
+_`2026-02-28T18:03:15.060Z`_
+
+yes uv run convx is better than... I think the hook we auto install via the CLI so good to also fix there.
+
+## Agent
+
+_`2026-02-28T18:03:23.215Z`_
+
+Also update the existing hook in this repo:
+
+## Agent
+
+_`2026-02-28T18:03:28.571Z`_
+
+Also update the `uninstall` check that looks for `"convx sync"` — that still matches since the string is still present:
+
+## Agent
+
+_`2026-02-28T18:03:31.801Z`_
+
+Good — the uninstall detection checks for `"convx sync"` which still appears in `"uv run convx sync"`, so that works fine. Now commit everything:
+
+## Agent
+
+_`2026-02-28T18:03:47.354Z`_
+
+Committed. The hook now works (it ran the sync successfully as part of the pre-commit), and both fixes are in.
